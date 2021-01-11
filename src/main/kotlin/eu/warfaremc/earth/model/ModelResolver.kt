@@ -174,7 +174,7 @@ class ModelResolver {
                                                     return@transaction
                                                 if (condition1)
                                                     return@transaction
-                                                plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t"+ region.name}
+                                                plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t"+ region.name }
                                                 Country.insertIgnore {
                                                     it[name] = region.name
                                                     it[uuid] = UUID.randomUUID()
@@ -256,52 +256,48 @@ class ModelResolver {
                     18 modification date : date of last modification in yyyy-MM-dd format
                      */
 
-                    /*
                     cities.useLines { sequence ->
-                        sequence.filterNotNull()
-                            .forEachIndexed { index, line ->
-                                val segments = line.split("\t")
-                                if (segments.isEmpty()) {
-                                    plugin.logger.error { "Failed to read line: L_$index" }
-                                    return@forEachIndexed
-                                }
-                                val named = segments[1]
-                                val entry = GeoNameEntry(
-                                    named,
-                                    segments[2],
-                                    covertDegrees(segments[4]),
-                                    covertDegrees(segments[5]),
-                                    segments[8],
-                                    segments[14].toInt(),
-                                    segments[18]
-                                )
-                                kguava.put("cities.$named", entry)
-                                transaction(plugin.database) {
-                                    val c2 = City     .selectAll()
-                                    val condition =
-                                        c2.filterNotNull().any { it[City.name] == entry.name }
-                                    if (condition)
-                                        return@transaction
-                                    plugin.logger.info {
-                                        "[City] Resolving($index of " + (sequence.filterNotNull()
-                                            .count() - 1) + "): [" + entry.countryCode2 + "]" + named + "\t" + "LocRadX[" + entry.lat + ", " + entry.lng + "]"
-                                    }
-                                    City.insertIgnore {
-                                        it[name] = entry.name
-                                        it[uuid] = UUID.randomUUID()
-                                        it[nativeName] = entry.nativeName
-                                        it[countryCode2] = entry.countryCode2
-                                        it[lat] = entry.lat
-                                        it[lng] = entry.lng
-                                        it[population] = entry.population
-                                        it[modifiedAt] = entry.modifiedAt
-                                    }
+                        sequence.forEachIndexed { index, line ->
+                            val segments = line.split("\t")
+                            if (segments.isEmpty()) {
+                                plugin.logger.error { "Failed to read line: L_$index" }
+                                return@forEachIndexed
+                            }
+                            val named = segments[1]
+                            val entry = GeoNameEntry(
+                                named,
+                                segments[2],
+                                covertDegrees(segments[4]),
+                                covertDegrees(segments[5]),
+                                segments[8],
+                                segments[14].toInt(),
+                                segments[18]
+                            )
+                            kguava.put("cities.$named", entry)
+                            transaction(plugin.database) {
+                                val c2 = City.selectAll()
+                                val condition =
+                                    c2.filterNotNull().any { it[City.name] == entry.name }
+                                if (condition)
+                                    return@transaction
+                                plugin.logger.info {
+                                    "[City[" + String.format("%05d", index) + "]]: [" + entry.countryCode2 + "] LocRadX[" + round(entry.lat) + ", " + round(entry.lng) + "]\t" + entry.name }
+                                City.insertIgnore {
+                                    it[name] = entry.name
+                                    it[uuid] = UUID.randomUUID()
+                                    it[nativeName] = entry.nativeName
+                                    it[countryCode2] = entry.countryCode2
+                                    it[lat] = entry.lat
+                                    it[lng] = entry.lng
+                                    it[population] = entry.population
+                                    it[modifiedAt] = entry.modifiedAt
                                 }
                             }
+                        }
                     }
-                     */
                 }
                 plugin.logger.info { "FINISHED" }
+                configuration.set("resolved", true).also { plugin.saveConfig() }
                 if (former.isFailure)
                     plugin.logger.error { "Failed to resolve cities data: " + former.exceptionOrNull()!! }
                 updateMarkers()
@@ -317,23 +313,26 @@ class ModelResolver {
                 for (country in Country.selectAll()) {
                     if (country[Country.lat] != 0.0 || country[Country.lng] != 0.0) {
                         val m0 = convertLatlng(country[Country.lat], country[Country.lng])
-                        val m1 = s0.findMarker(country[Country.uuid].toString())
-                            ?: s0.createMarker(country[Country.uuid].toString(), country[Country.name], "world", m0.first, 255.0, m0.second, plugin.markerAPI!!.getMarkerIcon("world"), false)
+                        s0.findMarker(country[Country.uuid].toString())
+                            ?: s0.createMarker(country[Country.uuid].toString(), country[Country.name], configuration.getString("world", "world"), m0.first, 255.0, m0.second, plugin.markerAPI!!.getMarkerIcon("world"), false)
                         if (country[Country.capitalCity].isNullOrEmpty() == false) {
                             val result = City.select { City.name eq country[Country.name] }.singleOrNull()
                             if (result != null) {
                                 val c0 = convertLatlng(result[City.lat], result[City.lng])
-                                val c1 = s1.findMarker(result[City.uuid].toString())
-                                    ?: s1.createMarker(result[City.uuid].toString(), result[City.name], "world", m0.first, 255.0, m0.second, plugin.markerAPI!!.getMarkerIcon("shield"), false)
+                                s1.findMarker(result[City.uuid].toString())
+                                    ?: s1.createMarker(result[City.uuid].toString(), result[City.name], configuration.getString("world", "world"), c0.first, 255.0, c0.second, plugin.markerAPI!!.getMarkerIcon("shield"), false)
                             }
                         }
                     }
                 }
                 for (city in City.selectAll()) {
                     if (city[City.lat] != 0.0 || city[City.lng] != 0.0) {
-                        val c0 = convertLatlng(city[City.lat], city[City.lng])
-                        val c1 = s1.findMarker(city[City.uuid].toString())
-                            ?: s1.createMarker(city[City.uuid].toString(), city[City.name], "world", c0.first, 255.0, c0.second, plugin.markerAPI!!.getMarkerIcon("shield"), false)
+                        if (city[City.population] > 1_000_000) {
+                            val c0 = convertLatlng(city[City.lat], city[City.lng])
+                            s1.findMarker(city[City.uuid].toString())
+                                ?: s1.createMarker(city[City.uuid].toString(), city[City.name], configuration.getString("world", "world"), c0.first, 255.0, c0.second, plugin.markerAPI!!.getMarkerIcon("shield"), false)
+
+                        }
                     }
                 }
             }
