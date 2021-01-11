@@ -41,7 +41,7 @@ class DownloadHelper {
             if (targetDir.exists() == false)
                 targetDir.mkdirs()
             val result: Result<File> = kotlin.runCatching {
-                val file = File(targetDir, "arc" + plugin.session + ".zip")
+                val file = File(targetDir, "tmp.t19441d1101y21.zip")
                 if (file.exists() == false)
                     file.createNewFile()
                 FileUtils.copyURLToFile(url, file)

@@ -40,6 +40,7 @@ import java.io.Serializable
 import java.io.StringReader
 import java.net.URL
 import java.util.*
+import kotlin.math.round
 
 class ModelResolver {
     companion object {
@@ -49,14 +50,14 @@ class ModelResolver {
                 plugin.logger.info { "Resolving geoDB ..." }
                 if (geoDB_DIR.exists() == false)
                     geoDB_DIR.mkdirs()
-                ContinentsEnum.values().forEach { continent ->
+                ContinentsEnum.values().forEachIndexed { index, continent ->
                     transaction(plugin.database) {
                         val c0 = Continent.selectAll()
                         val condition =
                             c0.filterNotNull().any { it[Continent.name] == continent.formerName }
                         if (condition)
                             return@transaction
-                        plugin.logger.info { "[Continent] Resolving: [" + continent.code2 + "]" + continent.formerName }
+                        plugin.logger.info { "[Continent[" + String.format("%04d", index) + "]] Resolving: [" + continent.code2 + "]" + continent.formerName }
                         Continent.insertIgnore {
                             it[name] = continent.formerName
                             it[uuid] = UUID.randomUUID()
@@ -65,7 +66,7 @@ class ModelResolver {
                     }
                     runBlocking {
                         when (continent) {
-                            ContinentsEnum.ANTARCTICA -> {
+                            ContinentsEnum.ANTARCTICA    -> {
                                 val countries = listOf(
                                     RegionObject(
                                         "Antarctica",
@@ -125,7 +126,7 @@ class ModelResolver {
                                             c1.filterNotNull().any { it[Country.name] == region.name }
                                         if (condition)
                                             return@transaction
-                                        plugin.logger.info { "[Country] Resolving($index of " + (countries.size - 1) + "): [" + region.code2 + "]" + region.name + "\t" + "LocRadX[" + region.lat + ", " + region.lng + "]" }
+                                        plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t"+ region.name}
                                         Country.insertIgnore {
                                             it[name] = region.name
                                             it[uuid] = UUID.randomUUID()
@@ -156,10 +157,7 @@ class ModelResolver {
                                             .create()
                                         gson.fromJson(reader, Array<RegionObject>::class.java).toList()
                                     }
-                                    if (result.isSuccess
-                                        && result.getOrNull() != null
-                                        && result.getOrNull()!!.isNotEmpty()
-                                    ) {
+                                    if (result.isSuccess && result.getOrNull().isNullOrEmpty() == false) {
                                         kguava.put(
                                             "continent.${continent.formerName.toLowerCase()}.countries",
                                             result.getOrNull()!!
@@ -167,11 +165,16 @@ class ModelResolver {
                                         result.getOrNull()!!.forEachIndexed { index, region ->
                                             transaction(plugin.database) {
                                                 val c1 = Country  .selectAll()
-                                                val condition =
+                                                val condition0 = continent != ContinentsEnum.SOUTH_AMERICA && south_america.split("\n")
+                                                    .map { it.split("\t")[0] }
+                                                    .any { region.code2 == it }
+                                                val condition1 =
                                                     c1.filterNotNull().any { it[Country.name] == region.name }
-                                                if (condition)
+                                                if (condition0)
                                                     return@transaction
-                                                plugin.logger.info { "[Country] Resolving($index of " + (result.getOrNull()!!.size - 1) + "): [" + region.code2 + "]" + region.name + "\t" + "LocRadX[" + region.lat + ", " + region.lng + "]" }
+                                                if (condition1)
+                                                    return@transaction
+                                                plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t"+ region.name}
                                                 Country.insertIgnore {
                                                     it[name] = region.name
                                                     it[uuid] = UUID.randomUUID()
@@ -253,6 +256,7 @@ class ModelResolver {
                     18 modification date : date of last modification in yyyy-MM-dd format
                      */
 
+                    /*
                     cities.useLines { sequence ->
                         sequence.filterNotNull()
                             .forEachIndexed { index, line ->
@@ -295,8 +299,9 @@ class ModelResolver {
                                 }
                             }
                     }
-                    plugin.logger.info { "FINISHED" }
+                     */
                 }
+                plugin.logger.info { "FINISHED" }
                 if (former.isFailure)
                     plugin.logger.error { "Failed to resolve cities data: " + former.exceptionOrNull()!! }
                 updateMarkers()
@@ -305,21 +310,21 @@ class ModelResolver {
 
         fun updateMarkers() {
             val s0 = plugin.markerAPI!!.getMarkerSet("m_countries")
-                ?: plugin.markerAPI!!.createMarkerSet("m_countries", "Countries", null, true)
+                ?: plugin.markerAPI!!.createMarkerSet("m_countries", "Countries", setOf(plugin.markerAPI!!.getMarkerIcon("world")), false)
             val s1 = plugin.markerAPI!!.getMarkerSet("m_cities")
-                ?: plugin.markerAPI!!.createMarkerSet("m_cities", "Cities", null, true)
+                ?: plugin.markerAPI!!.createMarkerSet("m_cities", "Cities", setOf(plugin.markerAPI!!.getMarkerIcon("shield")), false)
             transaction(plugin.database) {
                 for (country in Country.selectAll()) {
                     if (country[Country.lat] != 0.0 || country[Country.lng] != 0.0) {
                         val m0 = convertLatlng(country[Country.lat], country[Country.lng])
                         val m1 = s0.findMarker(country[Country.uuid].toString())
-                            ?: s0.createMarker(country[Country.uuid].toString(), country[Country.name], "world", m0.first, 255.0, m0.second, plugin.markerAPI!!.getMarkerIcon("world"), true)
+                            ?: s0.createMarker(country[Country.uuid].toString(), country[Country.name], "world", m0.first, 255.0, m0.second, plugin.markerAPI!!.getMarkerIcon("world"), false)
                         if (country[Country.capitalCity].isNullOrEmpty() == false) {
                             val result = City.select { City.name eq country[Country.name] }.singleOrNull()
                             if (result != null) {
                                 val c0 = convertLatlng(result[City.lat], result[City.lng])
                                 val c1 = s1.findMarker(result[City.uuid].toString())
-                                    ?: s1.createMarker(result[City.uuid].toString(), result[City.name], "world", m0.first, 255.0, m0.second, plugin.markerAPI!!.getMarkerIcon("shield"), true)
+                                    ?: s1.createMarker(result[City.uuid].toString(), result[City.name], "world", m0.first, 255.0, m0.second, plugin.markerAPI!!.getMarkerIcon("shield"), false)
                             }
                         }
                     }
@@ -328,7 +333,7 @@ class ModelResolver {
                     if (city[City.lat] != 0.0 || city[City.lng] != 0.0) {
                         val c0 = convertLatlng(city[City.lat], city[City.lng])
                         val c1 = s1.findMarker(city[City.uuid].toString())
-                            ?: s1.createMarker(city[City.uuid].toString(), city[City.name], "world", c0.first, 255.0, c0.second, plugin.markerAPI!!.getMarkerIcon("shield"), true)
+                            ?: s1.createMarker(city[City.uuid].toString(), city[City.name], "world", c0.first, 255.0, c0.second, plugin.markerAPI!!.getMarkerIcon("shield"), false)
                     }
                 }
             }

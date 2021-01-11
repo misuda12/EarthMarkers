@@ -33,11 +33,11 @@ object Continent : Table("t_continents") {
 }
 
 enum class ContinentsEnum(val formerName: String, val alias: String?, val code2: String) {
-    AFRICA("Africa", "Africa", "AF"),
     ANTARCTICA("Antarctica", null,"AN"),
+    AFRICA("Africa", "Africa", "AF"),
     ASIA("Asia", "Asia","AS"),
     EUROPE("Europe", "Europe","EU"),
     NORTH_AMERICA("North America", "Americas","NA"),
     SOUTH_AMERICA("South America", "Americas","SA"),
-    OCEANIA("Oceania", "Americas","OC")
+    OCEANIA("Oceania", "Oceania","OC")
 }

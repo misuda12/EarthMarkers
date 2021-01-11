@@ -22,13 +22,11 @@
 
 package eu.warfaremc.earth.miscellaneous
 
-import kotlin.math.roundToLong
-
 const val scale = 1000
                                                // X       Z
 fun convertLatlng(lat: Double, lng: Double): Pair<Double, Double> {
     return Pair(
-        (lat * 120000 / scale).roundToLong().toDouble(),
-        (lat * 120000 / scale).roundToLong().toDouble()
+        Math.round(((lng * 100.0) / 100.0) * 120000 / scale).toDouble(),
+        (-1 * Math.round(((lat * 100.0) / 100.0) * 120000 / scale)).toDouble()
     )
 }
