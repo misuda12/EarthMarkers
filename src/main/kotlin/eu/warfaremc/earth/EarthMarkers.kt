@@ -22,6 +22,10 @@
 
 package eu.warfaremc.earth
 
+import cloud.commandframework.bukkit.CloudBukkitCapabilities
+import cloud.commandframework.execution.AsynchronousCommandExecutionCoordinator
+import cloud.commandframework.minecraft.extras.MinecraftHelp
+import cloud.commandframework.paper.PaperCommandManager
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import com.google.gson.*
@@ -31,13 +35,13 @@ import eu.warfaremc.earth.model.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import mu.KotlinLogging
+import net.kyori.adventure.platform.bukkit.BukkitAudiences
+import org.bukkit.command.CommandSender
 import org.bukkit.configuration.Configuration
 import org.bukkit.plugin.java.JavaPlugin
 import org.dynmap.markers.MarkerAPI
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.exists
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
 import java.lang.reflect.Type
@@ -55,6 +59,12 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
 
     val logger by lazy { KotlinLogging.logger("EarthMarkers") }
     internal val session = UUID.randomUUID().toString()
+
+    // Command stuff
+    lateinit var audiences: BukkitAudiences
+    lateinit var commandManager: PaperCommandManager<CommandSender>
+    // lateinit var commandConfirmationManager: CommandConfirmationManager<CommandSender>
+    lateinit var commandHelp: MinecraftHelp<CommandSender>
 
     @PublishedApi
     internal var fisql: Database? = null
@@ -133,15 +143,14 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
         transaction(database) {
             SchemaUtils.create(Continent, Country, City)
         }
-
         if (server.pluginManager.isPluginEnabled("dynmap")) {
             val dynmap = org.dynmap.bukkit.DynmapPlugin.plugin
             if (dynmap.markerAPIInitialized()) {
                 markerAPI = dynmap.markerAPI
-                var m0 = plugin.markerAPI!!.getMarkerSet("m_countries")
-                    ?: plugin.markerAPI!!.createMarkerSet("m_countries", "Countries", null, true)
-                var m1 = plugin.markerAPI!!.getMarkerSet("m_countries")
-                    ?: plugin.markerAPI!!.createMarkerSet("m_cities", "Cities", null, true)
+                markerAPI!!.getMarkerSet("m_countries")
+                    ?: markerAPI!!.createMarkerSet("m_countries", "Countries", setOf(markerAPI!!.getMarkerIcon("world")), false)
+                markerAPI!!.getMarkerSet("m_cities")
+                    ?: markerAPI!!.createMarkerSet("m_cities", "Cities", setOf(markerAPI!!.getMarkerIcon("shield")), false)
             }
             else {
                 server.pluginManager.disablePlugin(this)
@@ -150,9 +159,31 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
             server.pluginManager.disablePlugin(this)
         }
         // Command CommandFramework
+        val executionCoordinatorFunction =
+            AsynchronousCommandExecutionCoordinator.newBuilder<CommandSender>().build()
+        try {
+            commandManager = PaperCommandManager(
+                this,
+                executionCoordinatorFunction,
+                ::identity,
+                ::identity
+            )
+        } catch (exception: Exception) {
+            logger.error { "Failed to initialize CommandFramework::CommandManager" }
+        }
+        finally {
+            commandHelp = MinecraftHelp("/earth help", audiences::sender, commandManager)
+            if (commandManager.queryCapability(CloudBukkitCapabilities.BRIGADIER))
+                commandManager.registerBrigadier()
+            if (commandManager.queryCapability(CloudBukkitCapabilities.ASYNCHRONOUS_COMPLETION))
+                commandManager.registerAsynchronousCompletions()
+            logger.info { "Successfully installed CommandFramework Cloud 1.3" }
+            CommandResolver.resolve()
+        }
         logger.warn { "Using primary database: '${database.url}, productName: ${database.vendor}, " +
                 "productVersion: ${database.version}, logger: $logger, dialect: ${database.dialect}'" }
-        ModelResolver.resolve()
+        if (configuration.getBoolean("resolved", false) == false)
+            ModelResolver.resolve()
         logger.info { "Enabled in: §a${(System.nanoTime() - time) / 1000000}ms" }
     }
 
@@ -202,3 +233,5 @@ data class RegionObject(
     val lat: Double,
     val lng: Double
 ) : java.io.Serializable
+
+fun <T> identity(t: T): T = t

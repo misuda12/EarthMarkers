@@ -15,7 +15,7 @@ buildscript {
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.4.10'
         classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
 
-        classpath        "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     }
 }
 
@@ -34,8 +34,8 @@ apply plugin: 'com.github.johnrengelman.shadow'
 group 'eu.warfaremc.earth'
 version '1.0-SNAPSHOT'
 
-sourceCompatibility = 1.11
-java.sourceCompatibility = JavaVersion.VERSION_11
+sourceCompatibility = 1.8
+java.sourceCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenCentral()
@@ -45,7 +45,7 @@ repositories {
     maven { url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
     maven { url = 'https://oss.sonatype.org/content/repositories/snapshots/' }
     maven { url = 'https://repo.codemc.org/repository/maven-public/'}
-    maven { url 'https://jitpack.io' }
+    maven { url = 'https://jitpack.io' }
     jcenter()
 }
 
