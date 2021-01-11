@@ -1,0 +1,11 @@
+name: EarthMarkers
+main: eu.warfaremc.earth.EarthMarkers
+version: ${project_version}
+description: 'EarthMarkers'
+author: misuda12
+authors:
+  - misuda12
+api-version: 1.16
+database: false
+depend:
+  - dynmap
