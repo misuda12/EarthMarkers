@@ -126,7 +126,7 @@ class ModelResolver {
                                             c1.filterNotNull().any { it[Country.name] == region.name }
                                         if (condition)
                                             return@transaction
-                                        plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t"+ region.name}
+                                        plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t\t"+ region.name}
                                         Country.insertIgnore {
                                             it[name] = region.name
                                             it[uuid] = UUID.randomUUID()
@@ -174,7 +174,7 @@ class ModelResolver {
                                                     return@transaction
                                                 if (condition1)
                                                     return@transaction
-                                                plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t"+ region.name }
+                                                plugin.logger.info { "[Country[" + String.format("%04d", index) + "]] [" + region.code2 + "] LocRadX[" + round(region.lat) + ", " + round(region.lng) + "]\t\t"+ region.name }
                                                 Country.insertIgnore {
                                                     it[name] = region.name
                                                     it[uuid] = UUID.randomUUID()
@@ -281,7 +281,7 @@ class ModelResolver {
                                 if (condition)
                                     return@transaction
                                 plugin.logger.info {
-                                    "[City[" + String.format("%05d", index) + "]]: [" + entry.countryCode2 + "] LocRadX[" + round(entry.lat) + ", " + round(entry.lng) + "]\t" + entry.name }
+                                    "[City[" + String.format("%05d", index) + "]]: [" + entry.countryCode2 + "] LocRadX[" + round(entry.lat) + ", " + round(entry.lng) + "]\t\t" + entry.name }
                                 City.insertIgnore {
                                     it[name] = entry.name
                                     it[uuid] = UUID.randomUUID()
