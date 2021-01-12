@@ -158,6 +158,9 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
         } else {
             server.pluginManager.disablePlugin(this)
         }
+        logger.warn { "Using primary database: '${database.url}, productName: ${database.vendor}, " +
+                "productVersion: ${database.version}, logger: $logger, dialect: ${database.dialect}'" }
+        if (configuration.getBoolean("resolved", false) == false) ModelResolver.resolve() else ModelResolver.updateMarkers()
         // Command CommandFramework
         val executionCoordinatorFunction =
             AsynchronousCommandExecutionCoordinator.newBuilder<CommandSender>().build()
@@ -172,6 +175,7 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
             logger.error { "Failed to initialize CommandFramework::CommandManager" }
         }
         finally {
+            audiences = BukkitAudiences.create(this)
             commandHelp = MinecraftHelp("/earth help", audiences::sender, commandManager)
             if (commandManager.queryCapability(CloudBukkitCapabilities.BRIGADIER))
                 commandManager.registerBrigadier()
@@ -180,10 +184,6 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
             logger.info { "Successfully installed CommandFramework Cloud 1.3" }
             CommandResolver.resolve()
         }
-        logger.warn { "Using primary database: '${database.url}, productName: ${database.vendor}, " +
-                "productVersion: ${database.version}, logger: $logger, dialect: ${database.dialect}'" }
-        if (configuration.getBoolean("resolved", false) == false)
-            ModelResolver.resolve()
         logger.info { "Enabled in: §a${(System.nanoTime() - time) / 1000000}ms" }
     }
 
