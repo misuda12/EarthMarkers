@@ -1,6 +1,2 @@
-# Options: 500, 1000, 5000, 15000
-scope: 15000
+population: 1000000
 world: "world"
-# https://opencagedata.com/dashboard#api-keys
-api_keys: []
-resolved: false

@@ -1,11 +1,11 @@
 name: EarthMarkers
 main: eu.warfaremc.earth.EarthMarkers
 version: ${project_version}
-description: 'EarthMarkers'
+description: 'Simple marker extension for Pl3xMap named EarthMarkers'
 author: misuda12
 authors:
   - misuda12
-api-version: 1.16
+api-version: 1.17
 database: false
 depend:
-  - dynmap
+  - Pl3xMap
