@@ -112,7 +112,7 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
             val url0 = ImageIO.read(URL("https://cdn.upload.systems/uploads/1zRKxN3t.png"))
             Pl3xMapProvider.get().iconRegistry()
                 .register(Key.of("pl3xmarker_marker_icon_country"), url0)
-            val url1 = ImageIO.read(URL("https://cdn.upload.systems/uploads/1zRKxN3t.png"))
+            val url1 = ImageIO.read(URL("https://cdn.warfaremc.eu/pl3xmap/pl3xmarker_marker_icon_mesto.png"))
             Pl3xMapProvider.get().iconRegistry()
                 .register(Key.of("pl3xmarker_marker_icon_city"), url1)
             val mapWorld = Pl3xMapProvider.get().mapWorlds().firstOrNull { it.name() == configuration.getString("world", "world") }
@@ -166,7 +166,7 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
                                 Marker(
                                     city[City.uuid],
                                     city[City.name],
-                                    city[City.population].toString(),
+                                    "Population: " + city[City.population],
                                     mapWorld.name(),
                                     locX = c0.first,
                                     locZ = c0.second
