@@ -1,6 +1,6 @@
 package eu.warfaremc.earth.miscellaneous
 
-const val scale = 500
+const val scale = 1000
                                                // X       Z
 fun convertLatlng(lat: Double, lng: Double): Pair<Double, Double> {
     return Pair(
