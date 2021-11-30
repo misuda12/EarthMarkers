@@ -1,6 +1,7 @@
 package eu.warfaremc.earth.model
 
 import eu.warfaremc.earth.kguava
+import eu.warfaremc.earth.miscellaneous.convertLatlng
 import net.pl3x.map.api.Key
 import net.pl3x.map.api.MapWorld
 import net.pl3x.map.api.Point
@@ -23,6 +24,7 @@ data class Marker(
     val pitch: Float = 1F
 ) {
     class MapTask(
+        private val key: String,
         private val world: MapWorld,
         private val provider: SimpleLayerProvider
     ) : BukkitRunnable() {
@@ -45,7 +47,7 @@ data class Marker(
             if (stop)
                 cancel()
             provider.clearMarkers()
-            kguava.getIfPresent("markers")?.forEach {
+            kguava.getIfPresent("markers_$key")?.forEach {
                 handle(it.id, it.name, it.description, it.world, it.locX, it.locZ)
             }
         }
@@ -59,7 +61,7 @@ data class Marker(
             locZ: Double
         ) {
             val icon: Icon = Marker.icon(
-                Point.point(locX, locZ), Key.of("pl3xmarker_marker_icon"), 16
+                Point.point(locX, locZ), Key.of("pl3xmarker_marker_icon_$key"), 16
             )
             icon.markerOptions(MarkerOptions.builder()
                 .hoverTooltip("<center>$name<br/>$description</center>"))

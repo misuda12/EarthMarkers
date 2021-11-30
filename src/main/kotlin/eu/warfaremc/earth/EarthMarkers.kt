@@ -109,40 +109,45 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
             SchemaUtils.create(Continent, Country, City)
         }
         if (server.pluginManager.isPluginEnabled("Pl3xMap")) {
-            val url = ImageIO.read(URL("https://cdn.upload.systems/uploads/1zRKxN3t.png"))
+            val url0 = ImageIO.read(URL("https://cdn.upload.systems/uploads/1zRKxN3t.png"))
             Pl3xMapProvider.get().iconRegistry()
-                .register(Key.of("pl3xmarker_marker_icon"), url)
+                .register(Key.of("pl3xmarker_marker_icon_country"), url0)
+            val url1 = ImageIO.read(URL("https://cdn.upload.systems/uploads/1zRKxN3t.png"))
+            Pl3xMapProvider.get().iconRegistry()
+                .register(Key.of("pl3xmarker_marker_icon_city"), url1)
             val mapWorld = Pl3xMapProvider.get().mapWorlds().firstOrNull { it.name() == configuration.getString("world", "world") }
             if (mapWorld == null) {
                 logger.warning { "Failed to mapWorld provider for: ${configuration.getString("world", "world")}" }
                 server.pluginManager.disablePlugin(this)
                 return
             }
+            kguava.put("markers_country", ArrayList())
+            kguava.put("markers_city", ArrayList())
             transaction(database) {
-                kguava.put("markers", ArrayList())
                 for (country in Country.selectAll()) {
                     if (country[Country.lat] != 0.0 || country[Country.lng] != 0.0) {
                         val c0 = convertLatlng(country[Country.lat], country[Country.lng])
-                        kguava.getIfPresent("markers")?.add(
+                        kguava.getIfPresent("markers_country")?.add(
                             Marker(
                                 country[Country.uuid],
                                 country[Country.name],
-                                country[Country.nativeName].ifEmpty { country[Country.code2] },
+                                "Code: " + country[Country.code2],
                                 mapWorld.name(),
                                 locX = c0.first,
                                 locZ = c0.second
                             )
                         )
                         if (country[Country.capitalCity].isNullOrEmpty() == false) {
-                            val city = City.select { City.name eq country[Country.name] }.singleOrNull()
+                            val capital = country[Country.capitalCity]
+                            val city = City.select { City.name eq "$capital" }.singleOrNull()
                             if (city != null) {
                                 if (city[City.lat] != 0.0 || city[City.lng] != 0.0) {
                                     val c1 = convertLatlng(city[City.lat], city[City.lng])
-                                    kguava.getIfPresent("markers")?.add(
+                                    kguava.getIfPresent("markers_city")?.add(
                                         Marker(
                                             city[City.uuid],
                                             city[City.name],
-                                            city[City.population].toString(),
+                                            "Population: " + city[City.population],
                                             mapWorld.name(),
                                             locX = c1.first,
                                             locZ = c1.second
@@ -157,7 +162,7 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
                     if (city[City.lat] != 0.0 || city[City.lng] != 0.0) {
                         if (city[City.population] > configuration.getInt("population", 1_000_000)) {
                             val c0 = convertLatlng(city[City.lat], city[City.lng])
-                            kguava.getIfPresent("markers")?.add(
+                            kguava.getIfPresent("markers_city")?.add(
                                 Marker(
                                     city[City.uuid],
                                     city[City.name],
@@ -171,15 +176,24 @@ class EarthMarkers : JavaPlugin(), CoroutineScope by MainScope() {
                     }
                 }
             }
-            val layerProvider: SimpleLayerProvider = SimpleLayerProvider.builder("Points")
+            val layerProviderCountry: SimpleLayerProvider = SimpleLayerProvider.builder("Countries")
+                .showControls(true)
+                .defaultHidden(false)
+                .build()
+            val layerProviderCity: SimpleLayerProvider = SimpleLayerProvider.builder("Cities")
                 .showControls(true)
                 .defaultHidden(false)
                 .build()
             mapWorld.layerRegistry()
-                .register(Key.of("pl3marker_${mapWorld.uuid()}_marker"), layerProvider)
-            val task = Marker.MapTask(mapWorld, layerProvider)
-            task.runTaskTimerAsynchronously(this, 0, 20L * 5)
-            provider[mapWorld.uuid().toString()] = task
+                .register(Key.of("pl3marker_${mapWorld.uuid()}_marker_0"), layerProviderCountry)
+            val task0 = Marker.MapTask("country", mapWorld, layerProviderCountry)
+            mapWorld.layerRegistry()
+                .register(Key.of("pl3marker_${mapWorld.uuid()}_marker_1"), layerProviderCity)
+            val task1 = Marker.MapTask("city", mapWorld, layerProviderCity)
+            task0.runTaskTimerAsynchronously(this, 0, 20L * 5)
+            provider[mapWorld.uuid().toString()] = task0
+            task1.runTaskTimerAsynchronously(this, 0, 20L * 5)
+            provider[mapWorld.uuid().toString()] = task1
         } else {
             server.pluginManager.disablePlugin(this)
             return
